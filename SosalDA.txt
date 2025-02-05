@@ -1,0 +1,268 @@
+1. Подготовка инфраструктуры
+Задачи:
+Настройка виртуальных машин с корректными именами и статическими IP-адресами.
+
+Установка и настройка GitHub на сервере INFRA.
+
+Настройка SSH для работы с репозиториями.
+
+Шаги:
+Настройка виртуальных машин:
+
+На всех виртуальных машинах (INFRA, APP1, CLI) выполните следующие команды:
+
+bash
+Copy
+sudo hostnamectl set-hostname <новое_имя>.rea-devops.ru
+Например, для INFRA:
+
+bash
+Copy
+sudo hostnamectl set-hostname infra.rea-devops.ru
+Настройте статические IP-адреса:
+
+bash
+Copy
+sudo nano /etc/network/interfaces
+Пример конфигурации для INFRA:
+
+Copy
+auto eth0
+iface eth0 inet static
+    address 192.168.122.10
+    netmask 255.255.255.0
+    gateway 192.168.122.1
+    dns-nameservers 77.88.8.8
+Установка GitHub на сервер INFRA:
+
+Установите Git:
+
+bash
+Copy
+sudo apt install git
+Создайте репозитории app-rea2025 и infra-automation:
+
+bash
+Copy
+mkdir -p /var/git/app-rea2025.git
+mkdir -p /var/git/infra-automation.git
+cd /var/git/app-rea2025.git
+git init --bare
+cd /var/git/infra-automation.git
+git init --bare
+Создайте учетную запись vasyan-devops:
+
+bash
+Copy
+sudo adduser vasyan-devops
+Настройте SSH для работы с репозиториями:
+
+bash
+Copy
+sudo nano /etc/ssh/sshd_config
+Добавьте строку:
+
+Copy
+AllowUsers vasyan-devops administrator
+Перезапустите SSH:
+
+bash
+Copy
+sudo systemctl restart ssh
+2. Подготовка приложения
+Задачи:
+Создание Dockerfile для frontend и backend компонентов приложения.
+
+Сборка образов и настройка docker-compose.
+
+Шаги:
+Создание Dockerfile для frontend:
+
+На любой удобной ВМ (например, CLI) создайте Dockerfile для frontend:
+
+bash
+Copy
+nano Dockerfile.frontend
+Пример содержимого:
+
+dockerfile
+Copy
+FROM nginx:latest
+COPY . /usr/share/nginx/html
+EXPOSE 80
+Создание Dockerfile для backend:
+
+Создайте Dockerfile для backend:
+
+bash
+Copy
+nano Dockerfile.backend
+Пример содержимого:
+
+dockerfile
+Copy
+FROM python:3.12
+COPY . /app
+WORKDIR /app
+RUN pip install -r requirements.txt
+EXPOSE 8000
+CMD ["python", "app.py"]
+Сборка образов:
+
+Соберите образы:
+
+bash
+Copy
+docker build -t app-frontend-rea25:latest -f Dockerfile.frontend .
+docker build -t app-backend-rea25:latest -f Dockerfile.backend .
+Настройка docker-compose:
+
+Создайте файл docker-compose.yml:
+
+bash
+Copy
+nano docker-compose.yml
+Пример содержимого:
+
+yaml
+Copy
+version: '3'
+services:
+  frontend:
+    image: app-frontend-rea25:latest
+    ports:
+      - "80:80"
+  backend:
+    image: app-backend-rea25:latest
+    ports:
+      - "8000:8000"
+3. Развертывание приложения
+Задачи:
+Развертывание приложения на сервере APP1.
+
+Настройка Ansible для автоматизации развертывания.
+
+Шаги:
+Ручное развертывание приложения:
+
+На сервере APP1 выполните команду:
+
+bash
+Copy
+docker-compose up -d
+Настройка Ansible:
+
+На CLI установите Ansible:
+
+bash
+Copy
+sudo apt install ansible
+Создайте файл inventory.ini:
+
+bash
+Copy
+nano inventory.ini
+Пример содержимого:
+
+Copy
+[all]
+app1 ansible_host=192.168.122.20
+Создайте файл ansible.cfg:
+
+bash
+Copy
+nano ansible.cfg
+Пример содержимого:
+
+Copy
+[defaults]
+inventory = ./inventory.ini
+remote_user = administrator
+Создайте плейбук deploy.yml:
+
+bash
+Copy
+nano deploy.yml
+Пример содержимого:
+
+yaml
+Copy
+- hosts: all
+  tasks:
+    - name: Deploy application
+      docker_compose:
+        project_src: /path/to/docker-compose.yml
+        state: present
+Создайте плейбук destroy.yml:
+
+bash
+Copy
+nano destroy.yml
+Пример содержимого:
+
+yaml
+Copy
+- hosts: all
+  tasks:
+    - name: Destroy application
+      docker_compose:
+        project_src: /path/to/docker-compose.yml
+        state: absent
+Запуск Ansible:
+
+Запустите развертывание:
+
+bash
+Copy
+ansible-playbook deploy.yml
+4. Настройка доступа к приложению
+Задачи:
+Настройка доступа к приложению через доменное имя app.rea-devops.ru.
+
+Защита доступа с использованием сертификатов.
+
+Шаги:
+Настройка DNS:
+
+На сервере INFRA настройте DNS-запись для app.rea-devops.ru:
+
+bash
+Copy
+sudo nano /etc/bind/db.rea-devops.ru
+Добавьте строку:
+
+Copy
+app     IN      A       192.168.122.20
+Настройка HTTPS:
+
+Установите и настройте Nginx на APP1:
+
+bash
+Copy
+sudo apt install nginx
+sudo nano /etc/nginx/sites-available/app.rea-devops.ru
+Пример конфигурации:
+
+Copy
+server {
+    listen 443 ssl;
+    server_name app.rea-devops.ru;
+
+    ssl_certificate /etc/nginx/ssl/app.rea-devops.ru.crt;
+    ssl_certificate_key /etc/nginx/ssl/app.rea-devops.ru.key;
+
+    location / {
+        proxy_pass http://localhost:80;
+    }
+}
+Создайте самоподписанный сертификат:
+
+bash
+Copy
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/app.rea-devops.ru.key -out /etc/nginx/ssl/app.rea-devops.ru.crt
+Перезапустите Nginx:
+
+bash
+Copy
+sudo systemctl restart nginx
+Это основные шаги для выполнения Модуля D. Если нужно больше деталей по какому-то конкретному шагу, дайте знать! 
