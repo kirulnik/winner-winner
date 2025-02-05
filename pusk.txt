@@ -1,0 +1,249 @@
+Конечно! Давайте разберем Модуль С: «Пуско-наладка центра обработки данных» пошагово. Я опишу основные шаги для выполнения каждого раздела задания, с указанием машин, на которых нужно выполнять настройки. Если нужно больше деталей по какому-то конкретному шагу, дайте знать!
+
+1. Базовая настройка виртуальных машин
+Задачи:
+Переименовать виртуальные машины (ВМ) в соответствии с доменными именами.
+
+Установить пароль администратора на всех ВМ: P@ssw0rd.
+
+Убедиться, что все ВМ используют доменные имена для доступа к инфраструктурным сервисам.
+
+Шаги:
+Переименование ВМ:
+
+На каждой виртуальной машине (например, HOST1, HOST2, HOST3, storage, INFR, DC) выполните команду:
+
+bash
+Copy
+sudo hostnamectl set-hostname <новое_имя>
+Например, для HOST1:
+
+bash
+Copy
+sudo hostnamectl set-hostname host1.rea2025.ru
+Установка пароля администратора:
+
+На каждой ВМ выполните команду:
+
+bash
+Copy
+sudo passwd root
+Установите пароль: P@ssw0rd.
+
+Проверка доменных имен:
+
+Убедитесь, что все ВМ могут разрешать доменные имена через DNS. Проверьте с помощью команды:
+
+bash
+Copy
+ping host1.rea2025.ru
+2. Сетевая инфраструктура канального уровня
+Задачи:
+Настройка коммутаторов на базе Open vSwitch.
+
+Настройка VLAN и агрегированных соединений.
+
+Шаги:
+Установка Open vSwitch:
+
+На всех коммутаторах (SW1, SW2, SW3) установите Open vSwitch:
+
+bash
+Copy
+sudo apt install openvswitch-switch
+Настройка агрегированных соединений:
+
+Создайте агрегированный интерфейс на коммутаторах:
+
+bash
+Copy
+sudo ovs-vsctl add-bond br0 bond0 eth1 eth2
+Настройте режим Active-Backup:
+
+bash
+Copy
+sudo ovs-vsctl set port bond0 lacp=active
+Настройка VLAN:
+
+Настройте VLAN на коммутаторах:
+
+bash
+Copy
+sudo ovs-vsctl add-br br-vlan100
+sudo ovs-vsctl add-port br-vlan100 eth3 tag=100
+3. Сетевая инфраструктура сетевого уровня
+Задачи:
+Настройка шлюзов и маршрутизации с использованием OSPF.
+
+Настройка маскарадинга на маршрутизаторе RTR.
+
+Шаги:
+Настройка OSPF:
+
+На маршрутизаторах (RTR, ESR) установите FRR:
+
+bash
+Copy
+sudo apt install frr
+Настройте OSPF:
+
+bash
+Copy
+sudo nano /etc/frr/ospfd.conf
+Добавьте конфигурацию:
+
+Copy
+router ospf
+    network 10.250.100.0/24 area 0
+    network 10.250.102.0/24 area 0
+Настройка маскарадинга:
+
+На маршрутизаторе RTR настройте маскарадинг:
+
+bash
+Copy
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+4. Базовая инфраструктура
+Задачи:
+Настройка службы синхронизации времени (NTP).
+
+Настройка службы конфигурации хостов (DHCP).
+
+Шаги:
+Настройка NTP:
+
+На виртуальной машине INFR установите и настройте NTP:
+
+bash
+Copy
+sudo apt install ntp
+sudo nano /etc/ntp.conf
+Добавьте строки:
+
+Copy
+server 10.250.100.254
+server 10.250.102.254
+Настройка DHCP:
+
+На виртуальной машине INFR установите и настройте DHCP:
+
+bash
+Copy
+sudo apt install isc-dhcp-server
+sudo nano /etc/dhcp/dhcpd.conf
+Добавьте конфигурацию:
+
+Copy
+subnet 10.250.200.0 netmask 255.255.255.0 {
+    range 10.250.200.150 10.250.200.200;
+    option routers 10.250.200.254;
+    option domain-name-servers 10.250.102.10;
+    option ntp-servers 10.250.102.20;
+}
+5. Служба каталогов
+Задачи:
+Настройка службы каталогов на виртуальной машине DC.
+
+Шаги:
+Настройка DNS:
+
+На виртуальной машине DC установите и настройте DNS:
+
+bash
+Copy
+sudo apt install bind9
+sudo nano /etc/bind/named.conf.local
+Добавьте зону:
+
+Copy
+zone "rea2025.ru" {
+    type master;
+    file "/etc/bind/db.rea2025.ru";
+};
+Настройка LDAP:
+
+На виртуальной машине DC установите и настройте LDAP:
+
+bash
+Copy
+sudo apt install slapd ldap-utils
+sudo dpkg-reconfigure slapd
+6. Инфраструктура виртуализации
+Задачи:
+Настройка хостов виртуализации (HOST1, HOST2, HOST3).
+
+Настройка менеджера виртуализации на HOST2.
+
+Шаги:
+Настройка zVirt:
+
+На HOST2 установите zVirt:
+
+bash
+Copy
+sudo apt install zvirt-hosted-engine
+Настройте Hosted Engine:
+
+bash
+Copy
+sudo hosted-engine --deploy
+Настройка кластеров:
+
+Создайте кластер BRIDGE-CL с хостами HOST1 и HOST2.
+
+Создайте кластер OVS-CL с хостом HOST3.
+
+7. Система хранения данных
+Задачи:
+Настройка системы хранения данных на виртуальной машине storage.
+
+Шаги:
+Настройка LVM:
+
+На storage создайте LVM:
+
+bash
+Copy
+sudo pvcreate /dev/sdb /dev/sdc /dev/sdd
+sudo vgcreate vg_storage /dev/sdb /dev/sdc /dev/sdd
+sudo lvcreate -L 62G -n HostedStorage vg_storage
+sudo lvcreate -L 75G -n VMNFS vg_storage
+sudo lvcreate -L 75G -n VMISCSI vg_storage
+Настройка NFS:
+
+Настройте NFS для HostedStorage:
+
+bash
+Copy
+sudo mkdir /nmt/hestorage
+sudo mount /dev/vg_storage/HostedStorage /nmt/hestorage
+sudo nano /etc/exports
+Добавьте строку:
+
+Copy
+/nmt/hestorage *(rw,sync,no_subtree_check)
+8. Клиентские рабочие места
+Задачи:
+Настройка рабочих мест PC-1 (администратор) и PC-2 (пользователь).
+
+Шаги:
+Настройка графической среды:
+
+На PC-1 и PC-2 установите графическую среду:
+
+bash
+Copy
+sudo apt install xfce4
+Настройка аутентификации:
+
+Настройте аутентификацию через LDAP:
+
+bash
+Copy
+sudo apt install libnss-ldap libpam-ldap
+sudo nano /etc/nsswitch.conf
+Добавьте строку:
+
+Copy
+passwd:         files ldap
+Это основные шаги для выполнения Модуля С. Если нужно больше деталей по какому-то конкретному шагу, дайте знать! 
