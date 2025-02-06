@@ -193,6 +193,172 @@ sudo hosted-engine --deploy
 
 Создайте кластер OVS-CL с хостом HOST3.
 
+ниже подробнее
+
+1. Подготовка хостов
+Машины:
+
+HOST1, HOST2, HOST3
+
+Убедитесь, что все хосты:
+
+Имеют статические IP-адреса (см. Таблицу 1 из задания).
+
+Установлена система виртуализации zVirt.
+
+Доступны друг для друга по сети (проверьте через ping).
+
+2. Создание кластера BRIDGE-CL (HOST1 + HOST2)
+Шаги:
+
+Вход в веб-интерфейс zVirt
+
+Откройте браузер на PC-1 (администраторская машина).
+
+Перейдите по адресу: https://he.rea2025.ru (адрес менеджера виртуализации).
+
+Авторизуйтесь: логин admin, пароль zvirt.
+
+Создание кластера BRIDGE-CL
+
+В интерфейсе zVirt:
+
+Data Centers → ZVIRT-DC → Clusters → New.
+
+Заполните параметры:
+
+Name: BRIDGE-CL
+
+Compatibility Version: Выберите актуальную версию (например, 4.5).
+
+CPU Type: Intel Skylake (или другой, указанный в задании).
+
+Нажмите OK.
+
+Добавление хостов HOST1 и HOST2 в кластер
+
+Перейдите в Hosts → New.
+
+Для HOST1:
+
+Name: host1.rea2025.ru
+
+Address: 10.250.100.10
+
+Password: zvirt (или указанный в задании).
+
+Cluster: BRIDGE-CL.
+
+Нажмите OK.
+
+Повторите для HOST2 (адрес 10.250.100.20).
+
+Проверка статуса хостов
+
+Убедитесь, что хосты отображаются как Up (зеленый статус).
+
+Если статус Down, проверьте:
+
+Сетевую связность между хостами и менеджером.
+
+Корректность пароля и IP-адресов.
+
+3. Создание кластера OVS-CL (HOST3)
+Шаги:
+
+Создание кластера OVS-CL
+
+В интерфейсе zVirt:
+
+Data Centers → ZVIRT-DC → Clusters → New.
+
+Заполните параметры:
+
+Name: OVS-CL
+
+Compatibility Version: Аналогично предыдущему кластеру.
+
+CPU Type: Укажите тип процессора.
+
+Switch Type: OVS (Open vSwitch).
+
+Нажмите OK.
+
+Добавление хоста HOST3
+
+Перейдите в Hosts → New.
+
+Для HOST3:
+
+Name: host3.rea2025.ru
+
+Address: 10.250.100.30
+
+Password: zvirt.
+
+Cluster: OVS-CL.
+
+Нажмите OK.
+
+Настройка Open vSwitch на HOST3
+
+Подключитесь к HOST3 через SSH:
+
+bash
+Copy
+ssh admin@host3.rea2025.ru
+Убедитесь, что Open vSwitch установлен и запущен:
+
+bash
+Copy
+sudo systemctl status openvswitch-switch
+Создайте мост для виртуальных сетей:
+
+bash
+Copy
+sudo ovs-vsctl add-br ovs-br0
+Проверка кластера OVS-CL
+
+В веб-интерфейсе zVirt убедитесь, что HOST3 имеет статус Up.
+
+Перейдите в Networks → New → Logical Network, чтобы добавить сеть для OVS (например, zvirt-net-1).
+
+4. Проверка работы кластеров
+Для BRIDGE-CL
+
+Создайте тестовую виртуальную машину в кластере BRIDGE-CL:
+
+Virtual Machines → New VM → Выберите шаблон → Запустите.
+
+Убедитесь, что ВМ запускается на одном из хостов (HOST1 или HOST2).
+
+Для OVS-CL
+
+Создайте виртуальную машину в кластере OVS-CL и подключите её к сети zvirt-net-1.
+
+Проверьте сетевую связность ВМ через Open vSwitch.
+
+5. Возможные ошибки и их решение
+Ошибка: Host is not responding
+
+Проверьте сетевые настройки (firewall, IP-адреса, маршруты).
+
+Убедитесь, что сервис ovirt-engine запущен на менеджере.
+
+Ошибка: OVS not configured
+
+Переустановите Open vSwitch на HOST3:
+
+bash
+Copy
+sudo apt install --reinstall openvswitch-switch
+Перезапустите сервис:
+
+bash
+Copy
+sudo systemctl restart openvswitch-switch
+Готово! Кластеры BRIDGE-CL и OVS-CL настроены. Теперь можно развертывать виртуальные машины и управлять ресурсами через zVirt.
+
 7. Система хранения данных
 Задачи:
 Настройка системы хранения данных на виртуальной машине storage.
